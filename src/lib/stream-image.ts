@@ -32,9 +32,20 @@ export async function streamImage(
     }
     return fetch(endpoint, { method: "POST", headers: requestHeaders, body, signal: signal ?? null });
   };
+  const readError = async (response: Response, fallbackStatus: number) => {
+    const body = await response.text().catch(() => "");
+    try {
+      const parsed = JSON.parse(body) as { error?: { message?: string } };
+      if (parsed?.error?.message) return parsed.error.message;
+    } catch {
+      /* not json */
+    }
+    return `Image generation failed: ${fallbackStatus} ${body}`;
+  };
+
   const res = await send(true);
   if (!res.ok || !res.body) {
-    throw new Error(`Image generation failed: ${res.status} ${await res.text().catch(() => "")}`);
+    throw new Error(await readError(res, res.status));
   }
 
   let sawCompleted = false;
@@ -93,7 +104,7 @@ export async function streamImage(
   if (!sawAnyEvent) {
     const replay = await send(false);
     if (!replay.ok) {
-      throw new Error(`Image generation failed: ${replay.status} ${await replay.text().catch(() => "")}`);
+      throw new Error(await readError(replay, replay.status));
     }
     const json = (await replay.json()) as { data?: { b64_json?: string }[] };
     const b64 = json.data?.[0]?.b64_json;
