@@ -122,13 +122,20 @@ function ChatLayout() {
         </nav>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-3 border-b border-glass-border p-3 md:hidden">
-          <button type="button" onClick={() => setOpen(true)} className="btn-ghost !p-2">
+      <main className="relative flex min-w-0 flex-1 flex-col">
+        {!open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={t("Conversations", "المحادثات")}
+            className={`glass fixed bottom-24 z-30 flex items-center gap-2 rounded-full px-3 py-2 text-xs shadow-lg md:hidden ${
+              lang === "ar" ? "right-3" : "left-3"
+            }`}
+          >
             <Menu className="h-4 w-4" />
+            {t("Conversations", "المحادثات")}
           </button>
-          <span className="font-display text-sm font-bold">Opera AI</span>
-        </div>
+        )}
         <Outlet />
       </main>
     </div>
