@@ -36,6 +36,14 @@ export const Route = createFileRoute("/api/generate-image")({
           undefined,
           typeof size === "string" ? { size } : undefined,
         );
+        if (!upstream.ok) {
+          const detail = await upstream.text().catch(() => "");
+          const message = describeImageFailure(upstream.status, detail);
+          return new Response(JSON.stringify({ error: { message } }), {
+            status: upstream.status,
+            headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+          });
+        }
         return new Response(upstream.body, {
           status: upstream.status,
           headers: {
