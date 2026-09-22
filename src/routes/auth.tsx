@@ -418,7 +418,8 @@ function AuthPage() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              void sendCode();
+              if (phoneMode === "password") void signInWithPhonePassword();
+              else void sendCode();
             }}
             className="mt-7 space-y-4"
           >
@@ -426,8 +427,27 @@ function AuthPage() {
               {t("Sign in with your phone", "سجّل دخولك برقم هاتفك")}
             </h1>
             <p className="text-center text-sm text-muted-foreground">
-              {t("We'll send a code on WhatsApp.", "راح نرسل ليك كود على واتساب.")}
+              {phoneMode === "code"
+                ? t("We'll send a code on WhatsApp.", "راح نرسل ليك كود على واتساب.")
+                : t("Sign in with your password.", "سجّل دخولك بكلمة المرور.")}
             </p>
+
+            <div className="glass grid grid-cols-2 gap-1 rounded-xl p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setPhoneMode("code")}
+                className={`rounded-lg py-2 transition ${phoneMode === "code" ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
+              >
+                {t("WhatsApp code", "رمز واتساب")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhoneMode("password")}
+                className={`rounded-lg py-2 transition ${phoneMode === "password" ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
+              >
+                {t("Phone + password", "رقم وكلمة مرور")}
+              </button>
+            </div>
 
             <CountryPicker value={country} onChange={setCountry} />
 
@@ -447,9 +467,32 @@ function AuthPage() {
               />
             </label>
 
+            {phoneMode === "password" && (
+              <label className="glass flex items-center gap-2 rounded-xl px-3 py-2.5">
+                <Lock className="h-4 w-4 text-primary" />
+                <input
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  type={showLoginPassword ? "text" : "password"}
+                  dir="ltr"
+                  autoComplete="current-password"
+                  placeholder={t("Password", "كلمة المرور")}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword((value) => !value)}
+                  aria-label={t("Show password", "إظهار كلمة المرور")}
+                  className="text-muted-foreground transition hover:text-primary"
+                >
+                  {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </label>
+            )}
+
             <button type="submit" disabled={busy} className="btn-hero w-full justify-center !py-2.5 text-sm">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {t("Send code", "أرسل الكود")}
+              {phoneMode === "password" ? t("Sign in", "تسجيل الدخول") : t("Send code", "أرسل الكود")}
             </button>
           </form>
         )}
@@ -604,6 +647,34 @@ function AuthPage() {
                     : usernameState === "free"
                       ? t("This username is available.", "اسم المستخدم متاح.")
                       : t("We suggest one from your name — you can change it.", "بنقترح ليك واحد من اسمك — وتقدر تغيّره.")}
+            </p>
+
+            <label className="glass flex items-center gap-2 rounded-xl px-3 py-2.5">
+              <Lock className="h-4 w-4 text-primary" />
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type={showPassword ? "text" : "password"}
+                dir="ltr"
+                minLength={6}
+                autoComplete="new-password"
+                placeholder={t("Password (6+ characters)", "كلمة المرور (6 حروف أو أرقام فأكثر)")}
+                className="flex-1 bg-transparent text-sm outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={t("Show password", "إظهار كلمة المرور")}
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </label>
+            <p className="-mt-2 px-1 text-xs text-muted-foreground">
+              {t(
+                "You can use this password with your phone number to sign in later.",
+                "تقدر تستخدم كلمة المرور دي مع رقم هاتفك للدخول لاحقاً.",
+              )}
             </p>
 
             <button type="submit" disabled={busy} className="btn-hero w-full justify-center !py-2.5 text-sm">
