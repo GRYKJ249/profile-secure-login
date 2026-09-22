@@ -72,8 +72,14 @@ type Result = {
   error?: string;
 };
 
-function isSafetyRefusal(message: string) {
-  return /safety|policy|moderation|content.?filter|refus|unsafe|blocked/i.test(message);
+function refusalKind(message: string): "copyright" | "safety" | null {
+  if (/copyright|trademark|intellectual.?property|brand|celebrit|public.?figure|likeness/i.test(message)) {
+    return "copyright";
+  }
+  if (/safety|policy|moderation|content.?filter|refus|unsafe|blocked|violat|not allowed|rejected/i.test(message)) {
+    return "safety";
+  }
+  return null;
 }
 
 const STYLES: { name: StyleName; detail: string }[] = [
