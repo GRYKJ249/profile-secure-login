@@ -6,7 +6,10 @@ import {
   Camera,
   Check,
   ChevronDown,
+  Eye,
+  EyeOff,
   Loader2,
+  Lock,
   Phone,
   RefreshCw,
   Search,
@@ -47,6 +50,11 @@ export const Route = createFileRoute("/auth")({
 });
 
 type Step = "phone" | "code" | "profile";
+type PhoneMode = "code" | "password";
+
+function syntheticEmail(phone: string) {
+  return `${phone.replace(/\D/g, "")}@phone.opera.local`;
+}
 
 function CountryPicker({
   value,
@@ -152,6 +160,11 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [phoneMode, setPhoneMode] = useState<PhoneMode>("code");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [usernameTouched, setUsernameTouched] = useState(false);
   const [usernameState, setUsernameState] = useState<"idle" | "checking" | "free" | "taken" | "invalid">("idle");
@@ -226,16 +239,51 @@ function AuthPage() {
         setCode("");
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({
-        email: result.email,
-        password: result.password,
-      });
+      const { error } =
+        result.mode === "otp"
+          ? await supabase.auth.verifyOtp({ type: "magiclink", token_hash: result.tokenHash })
+          : await supabase.auth.signInWithPassword({ email: result.email, password: result.password });
       if (error) {
         toast.error(error.message);
         return;
       }
       setPreviewCode(null);
       setStep("profile");
+    } catch (error) {
+      console.error(error);
+      toast.error(t("Something went wrong. Try again.", "حصل خطأ. جرب تاني."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Returning users can sign in directly with the password they set earlier.
+  const signInWithPhonePassword = async () => {
+    if (localNumber.replace(/\D/g, "").length < 6) {
+      toast.error(t("Enter your phone number.", "اكتب رقم هاتفك."));
+      return;
+    }
+    if (loginPassword.length < 6) {
+      toast.error(t("Password must be at least 6 characters.", "كلمة المرور لا تقل عن 6 حروف أو أرقام."));
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: syntheticEmail(fullPhone),
+        password: loginPassword,
+      });
+      if (error) {
+        toast.error(
+          t(
+            "Wrong phone number or password. You can sign in with a WhatsApp code instead.",
+            "رقم الهاتف أو كلمة المرور غير صحيحة. تقدر تدخل برمز واتساب بدلاً من ذلك.",
+          ),
+        );
+        return;
+      }
+      setPhone(fullPhone);
+      navigate({ to: "/chat", replace: true });
     } catch (error) {
       console.error(error);
       toast.error(t("Something went wrong. Try again.", "حصل خطأ. جرب تاني."));
@@ -319,10 +367,20 @@ function AuthPage() {
       );
       return;
     }
+    if (password.length < 6) {
+      toast.error(t("Password must be at least 6 characters.", "كلمة المرور لا تقل عن 6 حروف أو أرقام."));
+      return;
+    }
     const { data: current } = await supabase.auth.getUser();
     if (!current.user) return;
 
     setBusy(true);
+    const { error: passwordError } = await supabase.auth.updateUser({ password });
+    if (passwordError) {
+      setBusy(false);
+      toast.error(passwordError.message);
+      return;
+    }
     const { error } = await supabase.from("profiles").upsert({
       id: current.user.id,
       display_name: displayName.trim(),
