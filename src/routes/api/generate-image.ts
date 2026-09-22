@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { describeImageFailure } from "@/lib/image-errors";
 import { generateImage, imageSettings } from "@/lib/image-gateway.server";
 import { createClient } from "@supabase/supabase-js";
 
