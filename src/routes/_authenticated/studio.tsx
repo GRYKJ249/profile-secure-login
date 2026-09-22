@@ -257,9 +257,19 @@ function StudioPage() {
       toast.success(t("Image created and saved.", "تم إنشاء الصورة وحفظها."));
     } catch (error) {
       const raw = error instanceof Error ? error.message : String(error);
-      const message = isSafetyRefusal(raw)
-        ? t("This request could not be created because it conflicts with image safety rules. Adjust the description and try again.", "تعذّر إنشاء هذه الصورة لأنها لا تتوافق مع قواعد أمان الصور. عدّل الوصف وحاول مرة أخرى.")
-        : raw;
+      const kind = refusalKind(raw);
+      const message =
+        kind === "copyright"
+          ? t(
+              "This request was declined because it may involve copyrighted or trademarked content (brands, characters or real public figures). Describe an original idea instead.",
+              "تم رفض هذا الطلب لأنه قد يتضمن محتوى محمي بحقوق نشر أو علامة تجارية (علامات أو شخصيات أو أشخاص مشهورين). اكتب وصفاً لفكرة أصلية بدلاً من ذلك.",
+            )
+          : kind === "safety"
+            ? t(
+                "This request could not be created because it conflicts with image safety rules. Adjust the description and try again.",
+                "تعذّر إنشاء هذه الصورة لأنها لا تتوافق مع قواعد أمان الصور. عدّل الوصف وحاول مرة أخرى.",
+              )
+            : raw;
       setResult((current) => ({
         prompt: current?.prompt ?? basePrompt,
         ...(current?.dataUrl ? { dataUrl: current.dataUrl } : {}),
