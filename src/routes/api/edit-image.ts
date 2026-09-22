@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { imageSettings } from "@/lib/image-gateway.server";
+import { describeImageFailure } from "@/lib/image-errors";
 
 const ALLOWED_SIZES = new Set(["1024x1024", "1536x1024", "1024x1536"]);
 
@@ -43,6 +44,14 @@ export const Route = createFileRoute("/api/edit-image")({
           headers: { Authorization: `Bearer ${apiKey}` },
           body: form,
         });
+
+        if (!upstream.ok) {
+          const detail = await upstream.text().catch(() => "");
+          return new Response(JSON.stringify({ error: { message: describeImageFailure(upstream.status, detail) } }), {
+            status: upstream.status,
+            headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+          });
+        }
 
         return new Response(upstream.body, {
           status: upstream.status,
