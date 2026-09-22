@@ -143,12 +143,23 @@ export const verifyPhoneCode = createServerFn({ method: "POST" })
     const found = existing?.users.find((user) => user.email === email);
 
     if (found) {
+      // Sign the user in without touching their password, so a password they
+      // set themselves keeps working for direct sign-in.
+      const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+      });
+      const tokenHash = link?.properties?.hashed_token;
+      if (!linkError && tokenHash) {
+        return { ok: true as const, mode: "otp" as const, email, tokenHash, isNew: false as const };
+      }
+
       const { error } = await supabaseAdmin.auth.admin.updateUserById(found.id, { password });
       if (error) {
         console.error("password rotation failed", error);
         return { ok: false as const, error: "server_error" as const };
       }
-      return { ok: true as const, email, password, isNew: false as const };
+      return { ok: true as const, mode: "password" as const, email, password, isNew: false as const };
     }
 
     const { error } = await supabaseAdmin.auth.admin.createUser({
@@ -161,5 +172,5 @@ export const verifyPhoneCode = createServerFn({ method: "POST" })
       console.error("user creation failed", error);
       return { ok: false as const, error: "server_error" as const };
     }
-    return { ok: true as const, email, password, isNew: true as const };
+    return { ok: true as const, mode: "password" as const, email, password, isNew: true as const };
   });
